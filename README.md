@@ -56,9 +56,10 @@
    - http://192.168.69.108:9888
 
 3. 使用Ozone客户端测试文件操作：
+
    ```bash
-   # 在任意SCM节点执行
-   docker exec -it scm1 bash
+   # 在任意OM节点执行
+   docker exec -it om1 bash
    ozone sh volume create /vol1
    ozone sh bucket create /vol1/bucket1
    echo "Hello Ozone" > test.txt
