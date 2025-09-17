@@ -94,6 +94,7 @@ start_scm() {
     -e "OZONE-SITE.XML_ozone.scm.nodes.cluster1=scm1,scm2,scm3" \
     -e "OZONE-SITE.xml_ozone.scm.client.address=${ip4}" \
     -e "OZONE-SITE.XML_ozone.scm.block.client.address=${ip4}" \
+    -e "OZONE-SITE.XML_ozone.scm.names=o101,o102,o103" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm1=192.168.69.101" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm2=192.168.69.102" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm3=192.168.69.103" \
@@ -166,8 +167,17 @@ start_recon() {
     --add-host o108:192.168.69.108 \
     -v /etc/timezone:/etc/timezone \
     -v "/data/ozone/${recon}/data:/data" \
-    -e "OZONE-SITE.XML_ozone.recon.om.address=cluster1" \
-    -e "OZONE-SITE.XML_ozone.recon.scm.address=cluster1" \
+    -e "OZONE-SITE.XML_ozone.om.service.ids=cluster1" \
+    -e "OZONE-SITE.XML_ozone.om.nodes.cluster1=om1,om2,om3" \
+    -e "OZONE-SITE.XML_ozone.om.address.cluster1.om1=192.168.69.101" \
+    -e "OZONE-SITE.XML_ozone.om.address.cluster1.om2=192.168.69.102" \
+    -e "OZONE-SITE.XML_ozone.om.address.cluster1.om3=192.168.69.103" \
+    -e "OZONE-SITE.XML_ozone.scm.service.ids=cluster1" \
+    -e "OZONE-SITE.XML_ozone.scm.nodes.cluster1=scm1,scm2,scm3" \
+    -e "OZONE-SITE.XML_ozone.scm.names=o101,o102,o103" \
+    -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm1=192.168.69.101" \
+    -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm2=192.168.69.102" \
+    -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm3=192.168.69.103" \
     -e "OZONE-SITE.XML_ozone.recon.http-address=0.0.0.0:9888" \
     -e "OZONE-SITE.XML_ozone.metadata.dirs=/data/metadata" \
     apache/ozone:2.0.0 \
