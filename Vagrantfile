@@ -30,11 +30,17 @@ Vagrant.configure("2") do |config|
         'o106'   => '192.168.69.106',
         'o107'   => '192.168.69.107',
         'o108'   => '192.168.69.108',
+        'o109'   => '192.168.69.109',
 
     }
 
     ozone_machines.each do |name, ip|
         config.vm.define name do |machine|
+
+            if name == "o109"
+                machine.vm.box = "debian/bookworm64"
+            end
+
             machine.vm.network "private_network", ip: ip
 
             machine.vm.hostname = name
