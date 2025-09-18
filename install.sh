@@ -53,6 +53,7 @@ start_om() {
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm1=192.168.69.101" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm2=192.168.69.102" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm3=192.168.69.103" \
+    -e "OZONE-SITE.XML_ozone.recon.address=o108:9891" \
     -e "WAITFOR=192.168.69.103:9894" \
     apache/ozone:2.0.0 \
     ozone om
@@ -98,6 +99,7 @@ start_scm() {
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm1=192.168.69.101" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm2=192.168.69.102" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm3=192.168.69.103" \
+    -e "OZONE-SITE.XML_ozone.recon.address=o108:9891" \
     -e "OZONE-SITE.XML_ozone.metadata.dirs=/data/metadata" \
     apache/ozone:2.0.0 \
     bash -c "ozone scm --init;ozone scm --bootstrap;exec ozone scm"
@@ -135,6 +137,7 @@ start_datanode() {
     -e "OZONE-SITE.XML_hdds.datanode.dir=/data" \
     -e "OZONE-SITE.XML_hdds.datanode.http.address=0.0.0.0:9882" \
     -e "OZONE-SITE.XML_ozone.metadata.dirs=/data/metadata" \
+    -e "OZONE-SITE.XML_ozone.recon.address=o108:9891" \
     apache/ozone:2.0.0 \
     ozone datanode
 }
@@ -214,6 +217,17 @@ start_s3gateway() {
     -v "/data/ozone/${s3gateway}/data:/data" \
     -e "OZONE-SITE.XML_ozone.s3g.address=0.0.0.0:9878" \
     -e "OZONE-SITE.XML_ozone.s3g.domain.name=192.168.69.108" \
+    -e "OZONE-SITE.XML_ozone.om.service.ids=cluster1" \
+    -e "OZONE-SITE.XML_ozone.om.nodes.cluster1=om1,om2,om3" \
+    -e "OZONE-SITE.XML_ozone.om.address.cluster1.om1=192.168.69.101" \
+    -e "OZONE-SITE.XML_ozone.om.address.cluster1.om2=192.168.69.102" \
+    -e "OZONE-SITE.XML_ozone.om.address.cluster1.om3=192.168.69.103" \
+    -e "OZONE-SITE.XML_ozone.scm.service.ids=cluster1" \
+    -e "OZONE-SITE.XML_ozone.scm.nodes.cluster1=scm1,scm2,scm3" \
+    -e "OZONE-SITE.XML_ozone.scm.names=o101,o102,o103" \
+    -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm1=192.168.69.101" \
+    -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm2=192.168.69.102" \
+    -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm3=192.168.69.103" \
     -e "OZONE-SITE.XML_ozone.metadata.dirs=/data/metadata" \
     apache/ozone:2.0.0 \
     ozone s3g
