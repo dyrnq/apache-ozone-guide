@@ -45,9 +45,9 @@ fi
 
 
 
-apt update -y;
-apt install jq wget curl -y;
-
+while true; do
+    apt update -y && apt install jq wget curl ntp -y && sleep 1s && break;
+done
 
 
 echo "root:vagrant" | sudo chpasswd
