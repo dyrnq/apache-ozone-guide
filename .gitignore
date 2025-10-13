@@ -4,3 +4,4 @@ call.sh
 kill.sh
 ozone-docker
 ozone-docker-runner
+logs
