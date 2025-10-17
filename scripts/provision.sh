@@ -46,7 +46,7 @@ fi
 
 
 while true; do
-    apt update -y && apt install jq wget curl ntp -y && sleep 1s && break;
+    apt update -y && apt install jq wget curl ntpdate -y && sleep 1s && break;
 done
 
 
@@ -63,6 +63,23 @@ cat /etc/docker/daemon.json && \
 sed -i "s@https://docker.mirrors.ustc.edu.cn@https://docker.m.daocloud.io@g" /etc/docker/daemon.json && \
 systemctl restart docker && \
 cat /etc/docker/daemon.json
+
+ntpdate -u ntp1.aliyun.com;
+date
+
+if ! grep ntpdate /etc/crontab; then
+echo "*/1 * * * * root ntpdate -u ntp1.aliyun.com" >> /etc/crontab
+fi
+
+if grep ID=ubuntu < /etc/os-release ; then
+if [ -e /etc/needrestart/conf.d/ ]; then
+cat > /etc/needrestart/conf.d/silence_kernel.conf <<'EOF'
+$nrconf{kernelhints} = 0;
+$nrconf{restart} = 'l';
+EOF
+cat /etc/needrestart/conf.d/silence_kernel.conf
+fi
+fi
 
 
 if [ "$(hostname)" = "o109" ]; then
