@@ -99,9 +99,19 @@ aws s3api --endpoint http://o108:9878 create-bucket --bucket bucket2
 
 aws s3 ls --endpoint http://o108:9878 s3://bucket2
 aws s3 cp /etc/os-release --endpoint http://o108:9878  s3://bucket2/
-upload: ../../etc/os-release to s3://bucket2/os-release             
+upload: ../../etc/os-release to s3://bucket2/os-release
 aws s3 ls --endpoint http://o108:9878 s3://bucket2
 2025-10-10 03:57:33        507 os-release
+```
+
+
+```bash
+## 如果开启了kerberos认证按照一下拿到awsAccessKey和awsSecret
+## https://ozone.apache.org/docs/2.0.0/interface/s3.html
+kinit -kt /etc/security/keytabs/testuser.keytab testuser/scm@EXAMPLE.COM
+ozone s3 getsecret
+awsAccessKey=testuser/scm@EXAMPLE.COM
+awsSecret=c261b6ecabf7d37d5f9ded654b1c724adac9bd9f13e247a235e567e8296d2999
 ```
 
 
