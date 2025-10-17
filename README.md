@@ -19,12 +19,14 @@
 | 192.168.69.106 | Datanode节点 | Datanode3 |
 | 192.168.69.107 | Datanode节点 | Datanode4 |
 | 192.168.69.108 | Recon/S3 Gateway节点 | Recon, S3 Gateway |
+| 192.168.69.211 | hdfs使用演示节点 | hadoop, ozone, krb5-user, awscli |
 
 ## 文件说明
 
 - `install.sh`: 部署脚本，用于在各节点上启动相应的Ozone服务
 - `Vagrantfile`: Vagrant配置文件，用于创建测试环境
 - `kadmin-init.sh`: 创建principal并生成keytab文件
+- `hdfs-usage.sh`: 用于在`192.168.69.211`节点安装配置并演示hdfs,awscli
 
 ## 部署步骤
 
