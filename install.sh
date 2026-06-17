@@ -9,6 +9,7 @@ get_local_ip() {
 LOCAL_IP=$(get_local_ip)
 
 echo "本机IP地址: $LOCAL_IP"
+OZONE_IMAGE="apache/ozone:2.0.0"
 
 ozone_kerberos_args="";
 
@@ -123,8 +124,7 @@ start_om() {
     -e "OZONE-SITE.XML_ozone.recon.address=o108:9891" \
     -e "OZONE-SITE.XML_ozone.scm.client.address=cluster1" \
     -e "OZONE-SITE.XML_ozone.scm.block.client.address=cluster1" \
-    -e "WAITFOR=192.168.69.103:9894" \
-    ${ozone_kerberos_args} apache/ozone:2.0.0 \
+    ${ozone_kerberos_args} ${OZONE_IMAGE} \
     ozone om
 
 }
@@ -179,7 +179,7 @@ start_scm() {
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm3=192.168.69.103" \
     -e "OZONE-SITE.XML_ozone.recon.address=o108:9891" \
     -e "OZONE-SITE.XML_ozone.metadata.dirs=/data/metadata" \
-    ${ozone_kerberos_args} ${ensure_scm} apache/ozone:2.0.0 \
+    ${ozone_kerberos_args} ${ensure_scm} ${OZONE_IMAGE} \
     ozone scm
     # bash -c "ozone scm --init;ozone scm --bootstrap;exec ozone scm"
 }
@@ -223,7 +223,7 @@ start_datanode() {
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm1=192.168.69.101" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm2=192.168.69.102" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm3=192.168.69.103" \
-    ${ozone_kerberos_args} apache/ozone:2.0.0 \
+    ${ozone_kerberos_args} ${OZONE_IMAGE} \
     ozone datanode
 }
 
@@ -270,7 +270,7 @@ start_recon() {
     -e "OZONE-SITE.XML_ozone.metadata.dirs=/data/metadata" \
     -e "OZONE-SITE.XML_ozone.recon.address=o108:9891" \
     -e "OZONE-SITE.XML_ozone.recon.kerberos.principal=recon/o108@EXAMPLE.COM" \
-    ${ozone_kerberos_args} apache/ozone:2.0.0 \
+    ${ozone_kerberos_args} ${OZONE_IMAGE} \
     ozone recon
 }
 
@@ -316,7 +316,7 @@ start_s3gateway() {
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm2=192.168.69.102" \
     -e "OZONE-SITE.XML_ozone.scm.address.cluster1.scm3=192.168.69.103" \
     -e "OZONE-SITE.XML_ozone.metadata.dirs=/data/metadata" \
-    ${ozone_kerberos_args} apache/ozone:2.0.0 \
+    ${ozone_kerberos_args} ${OZONE_IMAGE} \
     ozone s3g
 }
 
@@ -341,16 +341,15 @@ docker run \
 -v /data/krb5/krb5kdc:/var/lib/krb5kdc \
 -v /data/krb5/security/keytabs:/etc/security/keytabs \
 -v /data/krb5/log:/var/log \
-gcavalcante8808/krb5-server:latest
+dyrnq/krb5-server:latest
 
 docker rm -f nginx >/dev/null 2>&1 || true
 docker run -d \
--d \
 --restart always \
 --name nginx \
 -p 80:80 \
 -v /data/krb5/security/keytabs:/usr/share/nginx/html \
-nginx bash -c "sed -i 's@user  nginx;@user root;@g' /etc/nginx/nginx.conf; cat /etc/nginx/nginx.conf; exec nginx -g \"daemon off;\""
+nginx bash -c "sed -i 's@user[[:space:]]\+nginx;@user root;@g' /etc/nginx/nginx.conf; cat /etc/nginx/nginx.conf; exec nginx -g \"daemon off;\""
 
 }
 # user root;
