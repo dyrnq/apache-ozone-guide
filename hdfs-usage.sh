@@ -1,5 +1,33 @@
 #!/usr/bin/env bash
 
+# === 参数解析 ===
+# --proxy <url>    HTTP 代理地址，如 http://192.168.6.111:7890
+# --noproxy <hosts> 不走代理的地址列表，默认 localhost,127.0.0.1,192.168.69.0/24,.local
+PROXY=""
+NOPROXY="localhost,127.0.0.1,192.168.69.0/24,.local"
+# 镜像地址，国内推荐（按速度排序）：
+#   https://mirrors.huaweicloud.com/apache
+#   https://mirrors.tuna.tsinghua.edu.cn/apache
+#   https://mirrors.ustc.edu.cn/apache
+MIRROR="${MIRROR:-https://archive.apache.org/dist}"
+declare -a CURL_OPTS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --proxy)   PROXY="$2";   shift 2 ;;
+    --noproxy) NOPROXY="$2";  shift 2 ;;
+    --mirror)  MIRROR="$2";  shift 2 ;;
+    *) shift ;;
+  esac
+done
+echo "MIRROR=${MIRROR}"
+
+CURL_OPTS=(-A "Apache-Hadoop-Client/3.4")
+if [ -n "$PROXY" ]; then
+  export http_proxy="$PROXY" https_proxy="$PROXY" HTTP_PROXY="$PROXY" HTTPS_PROXY="$PROXY"
+  export no_proxy="$NOPROXY" NO_PROXY="$NOPROXY"
+  CURL_OPTS=(-A "Apache-Hadoop-Client/3.4" --noproxy "$NOPROXY" -x "$PROXY")
+fi
+# ====================
 
 hadoop_home="/opt/hadoop"
 ozone_home="/opt/ozone"
@@ -15,7 +43,7 @@ echo "sudo_cmd=$sudo_cmd"
 install_hadoop(){
 if [ ! -e ${hadoop_home}/bin/hadoop ]; then
 pushd /tmp || exit 1
-wget https://archive.apache.org/dist/hadoop/common/hadoop-3.4.2/hadoop-3.4.2.tar.gz
+curl "${CURL_OPTS[@]}" -fSL -# -o hadoop-3.4.2.tar.gz ${MIRROR}/hadoop/common/hadoop-3.4.2/hadoop-3.4.2.tar.gz
 
 
 ${sudo_cmd} mkdir -p ${hadoop_home}
@@ -81,9 +109,7 @@ cat <<EOF | ${sudo_cmd} tee /opt/hadoop/etc/hadoop/ozone-site.xml
 <property><name>ozone.scm.address.cluster1.scm2</name><value>192.168.69.102</value></property>
 <property><name>ozone.scm.address.cluster1.scm3</name><value>192.168.69.103</value></property>
 <property><name>ozone.scm.names</name><value>o101,o102,o103</value></property>
-<property><name>hdds.datanode.kerberos.principal</name><value>dn/dn@EXAMPLE.COM</value></property>
 <property><name>ozone.recon.kerberos.keytab.file</name><value>/etc/security/keytabs/ozone.keytab</value></property>
-<property><name>hdds.datanode.kerberos.keytab.file</name><value>/etc/security/keytabs/ozone.keytab</value></property>
 <property><name>hdds.scm.kerberos.keytab.file</name><value>/etc/security/keytabs/ozone.keytab</value></property>
 <property><name>ozone.scm.client.address</name><value>192.168.69.101</value></property>
 <property><name>hadoop.security.authentication</name><value>KERBEROS</value></property>
@@ -96,16 +122,6 @@ cat <<EOF | ${sudo_cmd} tee /opt/hadoop/etc/hadoop/ozone-site.xml
 <property><name>ozone.om.kerberos.principal</name><value>om/om@EXAMPLE.COM</value></property>
 <property><name>ozone.om.nodes.cluster1</name><value>om1,om2,om3</value></property>
 <property><name>ozone.om.service.ids</name><value>cluster1</value></property>
-</configuration>
-EOF
-
-
-cat <<EOF | ${sudo_cmd} tee /opt/hadoop/etc/hadoop/hdfs-site.xml
-<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
-<configuration>
-<property><name>dfs.datanode.kerberos.principal</name><value>om/_HOST@EXAMPLE.COM</value></property>
-<property><name>dfs.datanode.kerberos.keytab.file</name><value>/etc/security/keytabs/ozone.keytab</value></property>
 </configuration>
 EOF
 
@@ -133,7 +149,7 @@ install_ozone(){
 if [ ! -e ${ozone_home}/bin/ozone ]; then
 pushd /tmp || exit 1
 rm -rf ozone-2.0.0.tar.gz
-wget https://archive.apache.org/dist/ozone/2.0.0/ozone-2.0.0.tar.gz
+curl "${CURL_OPTS[@]}" -fSL -# -o ozone-2.0.0.tar.gz ${MIRROR}/ozone/2.0.0/ozone-2.0.0.tar.gz
 
 
 ${sudo_cmd} mkdir -p ${ozone_home}
@@ -146,9 +162,9 @@ install_kerberos(){
 ${sudo_cmd} apt install krb5-user -y;
 ${sudo_cmd} mkdir -p /etc/security/keytabs
 for f in "HTTP.keytab" "ozone.keytab"; do
-if [[ $(curl -s -o /dev/null -w "%{http_code}" http://192.168.69.80/${f}) -eq 200 ]]; then
+if [[ $(curl "${CURL_OPTS[@]}" -s -o /dev/null -w "%{http_code}" http://192.168.69.80/${f}) -eq 200 ]]; then
 echo "${f} File exists and is accessible"
-${sudo_cmd} curl -o /etc/security/keytabs/${f} -f#SL http://192.168.69.80/${f}
+${sudo_cmd} curl "${CURL_OPTS[@]}" -o /etc/security/keytabs/${f} -f#SL http://192.168.69.80/${f}
 else
 echo "${f} File does not exist or is not accessible"
 fi
@@ -203,7 +219,7 @@ pushd /tmp || exit 1;
 if [ -f /vagrant/awscliv2.zip ]; then
     /bin/cp --verbose --force /vagrant/awscliv2.zip .
 else
-curl -f#SL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+curl "${CURL_OPTS[@]}" -f#SL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 fi
 
 if ! type -P unzip; then
