@@ -148,12 +148,12 @@ ${sudo_cmd} ln -s /opt/hadoop/etc/hadoop/ozone-site.xml /opt/ozone/etc/hadoop/oz
 install_ozone(){
 if [ ! -e ${ozone_home}/bin/ozone ]; then
 pushd /tmp || exit 1
-rm -rf ozone-2.0.0.tar.gz
-curl "${CURL_OPTS[@]}" -fSL -# -o ozone-2.0.0.tar.gz ${MIRROR}/ozone/2.0.0/ozone-2.0.0.tar.gz
+rm -rf ozone-2.1.0.tar.gz
+curl "${CURL_OPTS[@]}" -fSL -# -o ozone-2.1.0.tar.gz ${MIRROR}/ozone/2.1.0/ozone-2.1.0.tar.gz
 
 
 ${sudo_cmd} mkdir -p ${ozone_home}
-${sudo_cmd} tar -xvf ozone-2.0.0.tar.gz --strip-components 1 --directory ${ozone_home}
+${sudo_cmd} tar -xvf ozone-2.1.0.tar.gz --strip-components 1 --directory ${ozone_home}
 popd || exit 1
 fi
 }
@@ -178,7 +178,7 @@ fi
 
 grep krb5 /etc/hosts
 
-echo "https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-ozone/dist/src/main/compose/ozonesecure/krb5.conf"
+echo "https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-ozone/dist/src/main/compose/ozonesecure/krb5.conf"
 cat <<EOF | ${sudo_cmd} tee /etc/krb5.conf
 [logging]
  default = FILE:/var/log/krb5libs.log

@@ -135,10 +135,10 @@ remains operational.
 
 ## Security
 
-- <https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/security/SecureOzone.md>
-- <https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/security/SecuringDatanodes.md>
-- <https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/security/SecuringOzoneHTTP.md>
-- <https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/security/SecuringS3.md>
+- <https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/security/SecureOzone.md>
+- <https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/security/SecuringDatanodes.md>
+- <https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/security/SecuringOzoneHTTP.md>
+- <https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/security/SecuringS3.md>
 
 ---
 

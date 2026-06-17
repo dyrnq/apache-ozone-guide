@@ -111,7 +111,7 @@ docker exec krb5-server sh -c "$(cat /vagrant/kadmin-init.sh)"
 
 ```bash
 ## 注意此时没有开启任何认证,所以AWS_ACCESS_KEY_ID和AWS_SECRET_ACCESS_KEY为任意值即可,但是得有
-## 参考 https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/interface/S3.md#security
+## 参考 https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/interface/S3.md#security
 ## bucket2会在s3v这个vol内
 ## S3 buckets are stored under the /s3v volume.
 
@@ -152,10 +152,10 @@ awsSecret=c261b6ecabf7d37d5f9ded654b1c724adac9bd9f13e247a235e567e8296d2999
 
 ## 安全
 
-- <https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/security/SecureOzone.md>
-- <https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/security/SecuringDatanodes.md>
-- <https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/security/SecuringOzoneHTTP.md>
-- <https://github.com/apache/ozone/blob/ozone-2.0.0/hadoop-hdds/docs/content/security/SecuringS3.md>
+- <https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/security/SecureOzone.md>
+- <https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/security/SecuringDatanodes.md>
+- <https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/security/SecuringOzoneHTTP.md>
+- <https://github.com/apache/ozone/blob/ozone-2.1.0/hadoop-hdds/docs/content/security/SecuringS3.md>
 ---
 
 [English](README.md)

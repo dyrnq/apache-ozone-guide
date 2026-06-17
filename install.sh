@@ -9,7 +9,7 @@ get_local_ip() {
 LOCAL_IP=$(get_local_ip)
 
 echo "本机IP地址: $LOCAL_IP"
-OZONE_IMAGE="apache/ozone:2.0.0"
+OZONE_IMAGE="apache/ozone:2.1.0"
 
 ozone_kerberos_args="";
 
