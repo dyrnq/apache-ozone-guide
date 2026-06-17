@@ -19,9 +19,14 @@ sudo mkdir -p /data/ozone/security/keytabs
 sudo tee /data/ozone/security/kerberos.env <<EOF
 OZONE-SITE.XML_ozone.security.enabled=true
 OZONE-SITE.XML_hadoop.security.authentication=KERBEROS
+# 复制策略（RATIS/THREE=3 需 ≥3 DN，RATIS/ONE=1 可用于单节点测试；EC 支持 RS-3-2-1024k 等格式）
+OZONE-SITE.XML_ozone.server.default.replication=3
+OZONE-SITE.XML_ozone.server.default.replication.type=RATIS
 # SCM Security Configuration
 OZONE-SITE.XML_hdds.scm.kerberos.principal=scm/_HOST@EXAMPLE.COM
 OZONE-SITE.XML_hdds.scm.kerberos.keytab.file=/etc/security/keytabs/ozone.keytab
+OZONE-SITE.XML_ozone.scm.security.service.port=9961
+OZONE-SITE.XML_ozone.scm.security.service.bind.host=0.0.0.0
 # OM Security Configuration
 OZONE-SITE.XML_ozone.om.kerberos.principal=om/_HOST@EXAMPLE.COM
 OZONE-SITE.XML_ozone.om.kerberos.keytab.file=/etc/security/keytabs/ozone.keytab
@@ -35,6 +40,7 @@ OZONE-SITE.XML_hdds.datanode.kerberos.keytab.file=/etc/security/keytabs/ozone.ke
 OZONE-SITE.XML_ozone.recon.kerberos.principal=recon/_HOST@EXAMPLE.COM
 OZONE-SITE.XML_ozone.recon.kerberos.keytab.file=/etc/security/keytabs/ozone.keytab
 CORE-SITE.XML_hadoop.security.authentication=kerberos
+
 # OZONE-SITE.XML_ozone.security.http.kerberos.enabled=true
 # OZONE-SITE.XML_ozone.http.filter.initializers=org.apache.hadoop.security.AuthenticationFilterInitializer
 # OZONE-SITE.XML_hdds.scm.http.auth.type=kerberos
@@ -56,12 +62,18 @@ EOF
 
 
 for f in "HTTP.keytab" "ozone.keytab"; do
-if [[ $(curl -s -o /dev/null -w "%{http_code}" http://192.168.69.80/${f}) -eq 200 ]]; then
-  echo "${f} File exists and is accessible"
-  sudo curl -o /data/ozone/security/keytabs/${f} -f#SL http://192.168.69.80/${f}
-else
-  echo "${f} File does not exist or is not accessible"
-fi
+  for i in $(seq 1 10); do
+    if [[ $(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://192.168.69.80/${f}) -eq 200 ]]; then
+      echo "${f} 从 o80 下载成功"
+      sudo curl -o /data/ozone/security/keytabs/${f} -f#SL http://192.168.69.80/${f}
+      break
+    fi
+    echo "${f} 不可用 (第${i}/10 次重试)，5s 后重试..."
+    sleep 5
+  done
+  if [ ! -f /data/ozone/security/keytabs/${f} ]; then
+    echo "WARN: ${f} 无法下载，服务将无法安全启动" >&2
+  fi
 done
 
 
@@ -270,6 +282,8 @@ start_recon() {
     -e "OZONE-SITE.XML_ozone.metadata.dirs=/data/metadata" \
     -e "OZONE-SITE.XML_ozone.recon.address=o108:9891" \
     -e "OZONE-SITE.XML_ozone.recon.kerberos.principal=recon/o108@EXAMPLE.COM" \
+    -e "OZONE-SITE.XML_ozone.recon.scm.snapshot.task.interval.delay=2m" \
+    -e "OZONE-SITE.XML_ozone.recon.scm.snapshot.task.initial.delay=10s" \
     ${ozone_kerberos_args} ${OZONE_IMAGE} \
     ozone recon
 }
