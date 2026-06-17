@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-本项目提供了一个完整的高可用Apache Ozone集群部署方案，包含8个节点的配置和部署脚本。
+本项目提供了一个完整的高可用Apache Ozone集群部署方案，包含10个节点的配置和部署脚本。
 
 ## 集群架构
 
@@ -25,6 +25,8 @@
 
 - `install.sh`: 部署脚本，用于在各节点上启动相应的Ozone服务
 - `Vagrantfile`: Vagrant配置文件，用于创建测试环境
+- `scripts/provision.sh`: Vagrant provision 脚本，安装 Docker 等基础环境
+- `scripts/validate.sh`: 集群验证脚本，支持 `--no-ha` 跳过破坏性测试
 - `kadmin-init.sh`: 创建principal并生成keytab文件
 - `hdfs-usage.sh`: 用于在`192.168.69.211`节点安装配置并演示hdfs,awscli
 
@@ -34,12 +36,16 @@
 2. 启动o80, 并部署kerb5-server并生成keytab
 
 ```bash
-   vagrant up o80
-   vagrant ssh o80
-   cd /vagrant
-   bash ./install.sh
-   docker exec -it krb5-server sh
-   在krb5-server容器中,手工执行kadmin-init.sh脚本中的内容,执行一次即可
+vagrant up o80
+vagrant ssh o80
+cd /vagrant
+bash ./install.sh
+```
+
+在 krb5-server 容器中执行 kadmin-init.sh 生成 principals：
+
+```bash
+docker exec krb5-server sh -c "$(cat /vagrant/kadmin-init.sh)"
 ```
 
 3. 启动启动o101~o108, 并在每个节点上运行 `install.sh` 脚本来启动相应的服务：
@@ -58,9 +64,26 @@
    - 192.168.69.107: 启动Datanode4服务
    - 192.168.69.108: 启动Recon和S3 Gateway服务
 
+4. 最小演示可跳过 o106/o107（仅需 2 个 Datanode）：
+   ```bash
+   vagrant up o80 o101 o102 o103 o104 o105 o108 o211
+   ```
+
+5. 在 o211 上安装 Hadoop/Ozone 客户端并测试 HDFS 兼容性：
+   ```bash
+   vagrant ssh o211
+   cd /vagrant
+   bash ./hdfs-usage.sh
+   ```
+
 ## 验证集群状态
 
 可以通过以下方式验证集群状态：
+
+0. **一键自动化验证**（推荐）：
+   ```bash
+   bash scripts/validate.sh --no-ha
+   ```
 
 1. 检查容器是否正常运行：
    ```bash
@@ -70,11 +93,12 @@
 2. 访问Recon管理界面：
    - http://192.168.69.108:9888
 
-3. 使用Ozone客户端测试文件操作：
+3. 使用Ozone客户端测试文件操作（已开启 Kerberos 需先 kinit）：
 
    ```bash
    # 在任意OM节点执行
    docker exec -it om1 bash
+   kinit -kt /etc/security/keytabs/ozone.keytab om/o101@EXAMPLE.COM
    ozone sh volume create /vol1
    ozone sh bucket create /vol1/bucket1
    echo "Hello Ozone" > test.txt
@@ -116,6 +140,11 @@ awsAccessKey=testuser/scm@EXAMPLE.COM
 awsSecret=c261b6ecabf7d37d5f9ded654b1c724adac9bd9f13e247a235e567e8296d2999
 ```
 
+
+## 注意事项
+
+- 默认 `RATIS/THREE` 副本策略需 **3 个 Datanode** 才能写入。最小演示（2 DN）时只可验证集群连通性和只读操作
+- 完整部署：`vagrant up o80 o101 o102 o103 o104 o105 o106 o107 o108 o211`
 
 ## 故障恢复测试
 
