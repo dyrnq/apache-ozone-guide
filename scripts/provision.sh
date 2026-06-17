@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
 
-
+# === 参数解析 ===
+# --proxy <url>    HTTP 代理地址，如 http://192.168.6.111:7890
+# --noproxy <hosts> 不走代理的地址列表，默认 localhost,127.0.0.1,192.168.69.0/24,.local
+PROXY=""
+NOPROXY="localhost,127.0.0.1,192.168.69.0/24,.local"
+declare -a CURL_OPTS=(-A "Vagrant-Provision/1.0")
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --proxy)   PROXY="$2"; shift 2 ;;
+    --noproxy) NOPROXY="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+if [ -n "$PROXY" ]; then
+  export http_proxy="$PROXY" https_proxy="$PROXY" HTTP_PROXY="$PROXY" HTTPS_PROXY="$PROXY"
+  export no_proxy="$NOPROXY" NO_PROXY="$NOPROXY"
+  CURL_OPTS=(-A "Vagrant-Provision/1.0" --noproxy "$NOPROXY" -x "$PROXY")
+fi
+# ====================
 
 if command -v apt ; then
     if grep ubuntu /etc/os-release; then
@@ -46,30 +64,43 @@ fi
 
 
 while true; do
-    apt update -y && apt install jq wget curl ntpdate -y && sleep 1s && break;
+    apt update -y && apt install jq wget curl ntpsec -y && sleep 1s && break;
 done
 
 
 echo "root:vagrant" | sudo chpasswd
 timedatectl set-timezone "Asia/Shanghai"
-curl -fsSL https://ghfast.top/https://github.com/dyrnq/install-docker/raw/main/install-docker.sh | bash -s docker \
---mirror aliyun \
---version 28.0.1 \
---systemd-mirror https://ghfast.top && \
+curl "${CURL_OPTS[@]}" -fsSL https://get.docker.com -o /tmp/get-docker.sh
+http_proxy="$PROXY" https_proxy="$PROXY" DOWNLOAD_URL=https://mirrors.ustc.edu.cn/docker-ce sh /tmp/get-docker.sh
+rm -f /tmp/get-docker.sh
 usermod -aG docker vagrant
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json << 'DOCKEREOF'
+{
+  "insecure-registries": [
+    "192.168.6.130:5000",
+    "10.5.26.11:5000"
+  ],
+  "registry-mirrors": ["http://192.168.6.130:5000"]
+}
+DOCKEREOF
+systemctl restart docker
 docker ps
-
-cat /etc/docker/daemon.json && \
-sed -i "s@https://docker.mirrors.ustc.edu.cn@https://docker.m.daocloud.io@g" /etc/docker/daemon.json && \
-systemctl restart docker && \
 cat /etc/docker/daemon.json
 
-ntpdate -u ntp1.aliyun.com;
-date
-
-if ! grep ntpdate /etc/crontab; then
-echo "*/1 * * * * root ntpdate -u ntp1.aliyun.com" >> /etc/crontab
+if [ -n "$PROXY" ]; then
+  mkdir -p /etc/systemd/system/docker.service.d
+  cat > /etc/systemd/system/docker.service.d/http-proxy.conf << PROXYEOF
+[Service]
+Environment="HTTP_PROXY=${PROXY}"
+Environment="HTTPS_PROXY=${PROXY}"
+Environment="NO_PROXY=${NOPROXY}"
+PROXYEOF
+  systemctl daemon-reload
+  systemctl restart docker
 fi
+
+
 
 if grep ID=ubuntu < /etc/os-release ; then
 if [ -e /etc/needrestart/conf.d/ ]; then
@@ -82,24 +113,4 @@ fi
 fi
 
 
-if [ "$(hostname)" = "o109" ]; then
-apt update -y && \
-apt upgrade -y && \
-apt install -y apt-transport-https curl iptables wget vim psmisc procps iproute2 tree jq gnupg2 nmap htop locales gettext difference ca-certificates openssh-client unzip less ipset net-tools ipvsadm xz-utils conntrack xfsprogs && \
-apt install -y task-gnome-desktop flameshot imagemagick bridge-utils aria2 ffmpeg gosu git git-lfs 7zip tilix terminator
 
-
-apt install build-essential linux-headers-generic -y
-
-
-
-#ver="$(VBoxManage --version | cut -d'r' -f1)"
-ver=7.1.8
-echo "ver=${ver}"
-
-curl -fSL -# -o /tmp/VBoxGuestAdditions.iso https://download.virtualbox.org/virtualbox/${ver}/VBoxGuestAdditions_${ver}.iso;
-
-( umount /media 2>/dev/null || true ) && mount /tmp/VBoxGuestAdditions.iso /media -o loop --read-only && ( cd /media && echo "yes" | ./VBoxLinuxAdditions.run )
-
-
-fi
