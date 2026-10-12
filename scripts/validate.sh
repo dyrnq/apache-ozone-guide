@@ -140,7 +140,100 @@ else
 fi
 
 # ========== Phase 8: HA ==========
-title "Phase 8: HA (跳过)"
-skip "--no-ha"
+title "Phase 8: HA 故障转移"
+if [ "$HA_TESTS" = "false" ]; then
+  skip "--no-ha 模式"
+else
+  # --- 8.1 OM follower 故障转移 ---
+  # 找出当前 OM leader（用 ozone admin om roles --json，table 难以解析）
+  # 注意：必须用 bash -c 把整段命令作为单个参数传给 docker exec，否则 ; 会在外层 shell 拆开
+  om_roles=$(docker_cmd "o101" "om1" "bash -c 'kinit -kt /etc/security/keytabs/ozone.keytab om/o101@EXAMPLE.COM 2>/dev/null; ozone admin om roles --json 2>/dev/null'" 2>/dev/null || true)
+  # OM roles JSON 是数组：[{om1:{serverRole:LEADER}}, ...]
+  om_leader=$(echo "$om_roles" | python3 -c "
+import json, sys
+try:
+  d=json.load(sys.stdin)
+  for entry in d:
+    for k,v in entry.items():
+      if isinstance(v,dict) and v.get('serverRole')=='LEADER':
+        print(k); sys.exit(0)
+except Exception:
+  pass
+" 2>/dev/null || echo "")
+  if [ -z "$om_leader" ]; then
+    fail "无法解析 OM leader（roles 输出：$(echo "$om_roles" | head -c 200)）"
+  else
+    info "OM leader: $om_leader"
+    # om_leader -> host 映射: om1=o101, om2=o102, om3=o103
+    om_leader_host="o10${om_leader: -1}"
+    om_follower=""
+    for c in om1 om2 om3; do
+      [ "$c" != "$om_leader" ] && om_follower="$c" && break
+    done
+    if [ -n "$om_follower" ]; then
+      om_follower_host="o10${om_follower: -1}"
+      info "停止 follower: $om_follower (host $om_follower_host)"
+      ssh_to "$om_follower_host" "sudo docker stop $om_follower" >/dev/null 2>&1
+      sleep 6
+      # 验证 volume list 仍工作
+      vl=$(docker_cmd "$om_leader_host" "$om_leader" "bash -c 'kinit -kt /etc/security/keytabs/ozone.keytab om/${om_leader_host}@EXAMPLE.COM 2>/dev/null; ozone sh volume list 2>&1'" 2>/dev/null || true)
+      if echo "$vl" | grep -q '"name"'; then
+        pass "OM follower ${om_follower} 停止后 volume list 仍正常"
+      else
+        fail "OM follower ${om_follower} 停止后 volume list 失败: $(echo "$vl" | tail -1)"
+      fi
+      ssh_to "$om_follower_host" "sudo docker start $om_follower" >/dev/null 2>&1
+      sleep 6
+      pass "OM follower ${om_follower} 已重启"
+    fi
+  fi
+
+  # --- 8.2 SCM follower 故障转移 ---
+  scm_roles=$(docker_cmd "o101" "scm1" "ozone admin scm roles --json 2>/dev/null" 2>/dev/null || true)
+  # SCM roles JSON 是对象：{o101:{raftPeerRole:LEADER, ...}, ...} 键是主机名（o101/o102/o103），容器名是 scm1/scm2/scm3
+  scm_leader=$(echo "$scm_roles" | python3 -c "
+import json, sys
+try:
+  d=json.load(sys.stdin)
+  for host,v in d.items():
+    if isinstance(v,dict) and v.get('raftPeerRole')=='LEADER':
+      # host o101/o102/o103 -> scm1/scm2/scm3 (末位数字 = 容器编号)
+      n=host[-1]
+      print(f'scm{n}'); sys.exit(0)
+except Exception:
+  pass
+" 2>/dev/null || echo "")
+  if [ -z "$scm_leader" ]; then
+    # 兜底：解析 textual roles
+    scm_leader=$(docker_cmd "o101" "scm1" "ozone admin scm roles 2>/dev/null" 2>/dev/null | \
+      awk '/LEADER/{for(i=1;i<=NF;i++) if($i ~ /^scm[0-9]+:$/) {gsub(":","",$i); print tolower($i); exit}}')
+  fi
+  if [ -z "$scm_leader" ]; then
+    warn "无法解析 SCM leader（roles 输出：$(echo "$scm_roles" | head -c 200)）"
+  else
+    info "SCM leader: $scm_leader"
+    # scm_leader -> host 映射: scm1=o101, scm2=o102, scm3=o103
+    scm_leader_host="o10${scm_leader: -1}"
+    scm_follower=""
+    for c in scm1 scm2 scm3; do
+      [ "$c" != "$scm_leader" ] && scm_follower="$c" && break
+    done
+    if [ -n "$scm_follower" ]; then
+      scm_host="o10${scm_follower: -1}"
+      info "停止 follower: $scm_follower (host $scm_host)"
+      ssh_to "$scm_host" "sudo docker stop $scm_follower" >/dev/null 2>&1
+      sleep 6
+      cl=$(docker_cmd "$scm_leader_host" "$scm_leader" "bash -c 'kinit -kt /etc/security/keytabs/ozone.keytab scm/${scm_leader_host}@EXAMPLE.COM 2>/dev/null; ozone admin container list 2>&1'" 2>/dev/null || true)
+      if echo "$cl" | grep -qi "Container"; then
+        pass "SCM follower ${scm_follower} 停止后 container list 仍正常"
+      else
+        fail "SCM follower ${scm_follower} 停止后 container list 失败: $(echo "$cl" | tail -1)"
+      fi
+      ssh_to "$scm_host" "sudo docker start $scm_follower" >/dev/null 2>&1
+      sleep 6
+      pass "SCM follower ${scm_follower} 已重启"
+    fi
+  fi
+fi
 
 summary
