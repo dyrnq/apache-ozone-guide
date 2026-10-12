@@ -317,7 +317,7 @@ start_s3gateway() {
     --add-host krb5:192.168.69.80 \
     -v "/data/ozone/${s3gateway}/data:/data" \
     -e "OZONE-SITE.XML_ozone.s3g.address=0.0.0.0:9878" \
-    -e "OZONE-SITE.XML_ozone.s3g.domain.name=o108" \
+    -e "OZONE-SITE.XML_ozone.s3g.domain.name=o108,192.168.69.108" \
     -e "OZONE-SITE.XML_ozone.om.service.ids=cluster1" \
     -e "OZONE-SITE.XML_ozone.om.nodes.cluster1=om1,om2,om3" \
     -e "OZONE-SITE.XML_ozone.om.address.cluster1.om1=192.168.69.101" \
